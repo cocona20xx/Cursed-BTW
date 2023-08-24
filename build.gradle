@@ -1,15 +1,17 @@
-import net.fabricmc.loom.task.RunClientTask
-import net.fabricmc.loom.task.RunServerTask
-
-buildscript {
-    dependencies {
-        classpath fileTree(dir: "libs", include: "fabric-loom-0.7.local.jar")
-    }
-}
 
 plugins {
     id 'maven-publish'
-    id 'fabric-loom' version "0.7-SNAPSHOT"
+    id 'org.quiltmc.loom' version '1.2.+'
+}
+
+loom {
+    setIntermediaryUrl('https://maven.legacyfabric.net/net/legacyfabric/intermediary/%1$s/intermediary-%1$s-v2.jar')
+    if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+        runConfigs.named("client").get().getVmArgs().remove("-XstartOnFirstThread")
+    }
+    runConfigs.named("client").get().getVmArgs().add("-Xverify:none")
+    runConfigs.named("server").get().getVmArgs().add("-Xverify:none")
+
 }
 
 sourceCompatibility = JavaVersion.VERSION_1_8
@@ -52,8 +54,8 @@ def lwjglVersion = System.getProperty("os.name").toLowerCase().contains("mac") ?
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    implementation 'org.apache.logging.log4j:log4j-core:2.17.0'
-    implementation 'org.apache.logging.log4j:log4j-api:2.17.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+    implementation 'org.apache.logging.log4j:log4j-api:2.17.1'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
 
     implementation "org.lwjgl.lwjgl:lwjgl_util:${lwjglVersion}"
@@ -65,6 +67,8 @@ dependencies {
     modImplementation(group: 'net.devtech', name: 'grossfabrichacks', version: '4.5') {
         exclude group: 'net.fabricmc'
     }
+    implementation 'com.google.code.gson:gson:2.10.1'
+    include 'com.google.code.gson:gson:2.10.1'
 
     include 'it.unimi.dsi:fastutil:8.5.12'
     include 'net.devtech:grossfabrichacks:4.5'
@@ -73,10 +77,11 @@ dependencies {
     compileOnly fileTree(dir: "$projectDir/BTW_dev", include: "*.zip")
     compileOnly fileTree(dir: "$buildDir/BTW_dev", include: "**.jar")
 
-    runtimeClasspath fileTree(dir: "$buildDir/dev_run", include: "dev.jar")
+    compileOnly fileTree(dir: "$buildDir/dev_run", include: "dev.jar")
 
     mappings fileTree(dir: "custom_mappings", include: "**.zip")
-    modImplementation("io.github.minecraft-cursed-legacy:cursed-fabric-loader:${loader_version}") {
+    modImplementation("org.quiltmc:quilt-loader:${project.quilt_loader_version}"
+    ) {
         transitive false
     }
 }
@@ -89,8 +94,8 @@ configurations {
 configurations.all {
     resolutionStrategy {
         dependencySubstitution {
-            substitute module('org.lwjgl.lwjgl:lwjgl_util:2.9.1-nightly-20130708-debug3') with module("org.lwjgl.lwjgl:lwjgl_util:${lwjglVersion}")
-            substitute module('org.lwjgl.lwjgl:lwjgl:2.9.1-nightly-20130708-debug3') with module("org.lwjgl.lwjgl:lwjgl:${lwjglVersion}")
+            substitute module('org.lwjgl.lwjgl:lwjgl_util:2.9.1-nightly-20130708-debug3') using module("org.lwjgl.lwjgl:lwjgl_util:${lwjglVersion}")
+            substitute module('org.lwjgl.lwjgl:lwjgl:2.9.1-nightly-20130708-debug3') using module("org.lwjgl.lwjgl:lwjgl:${lwjglVersion}")
         }
         force "org.lwjgl.lwjgl:lwjgl-platform:${lwjglVersion}"
     }
@@ -116,26 +121,6 @@ compileJava {
     dependsOn('btwJar')
 }
 
-task devPackMod(type:Copy) {
-    dependsOn('jar')
-    from sourceSets.main.output.classesDirs
-    into file("$buildDir/classes/java/btw")
-}
-
-task devPackBTW(type:Copy) {
-    dependsOn('devPackMod')
-    dependsOn('btwJar')
-}
-
-task devPackRun(type:Jar) {
-    dependsOn('devPackBTW')
-    from fileTree("$buildDir/classes/java/btw")
-    from fileTree("$projectDir/BTW_dev/")
-    from sourceSets.btw.output.resourcesDir
-    destinationDirectory = file("$buildDir/dev_run")
-    archiveFileName = "dev.jar"
-}
-
 jar {
     from sourceSets.main.output.resourcesDir
     from sourceSets.main.output.classesDirs
@@ -151,45 +136,4 @@ task btwJar(type:Jar) {
     from sourceSets.btw.output.classesDirs
     destinationDirectory = file("$buildDir/BTW_dev")
     archiveFileName = "BTW_dev.jar"
-}
-
-remapJar {
-    dependsOn(jar)
-    input.set jar.archiveFile.get()
-    destinationDirectory = file("$rootDir/release")
-}
-
-reobfuscateJar {
-    dependsOn(jar)
-    input.set jar.archiveFile.get()
-    destinationDirectory = file("$rootDir/reobfuscated")
-}
-
-task safeRunClient(type:RunClientTask) {
-    mustRunAfter('clean')
-    dependsOn('clean')
-    dependsOn('devPackRun')
-}
-
-task safeRunServer(type:RunServerTask) {
-    mustRunAfter('clean')
-    dependsOn('clean')
-    dependsOn('devPackRun')
-}
-
-runClient {
-    dependsOn('devPackRun')
-}
-
-project.afterEvaluate {
-    devPackRun.dependsOn -= downloadAssets
-}
-
-runServer {
-    dependsOn('devPackRun')
-}
-
-clean.doFirst {
-    delete "$buildDir/dev_run"
-    delete "$buildDir/BTW_dev"
 }

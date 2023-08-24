@@ -12,12 +12,9 @@ pluginManagement {
             name = 'Jitpack'
             url = 'https://jitpack.io'
         }
-    }
-    resolutionStrategy {
-        eachPlugin {
-            if (requested.id.id == "fabric-loom" && requested.version?.endsWith("-SNAPSHOT") != true) {
-                useModule("com.github.Chocohead.Fabric-Loom:fabric-loom:${requested.version}")
-            }
+        maven {
+            name = 'Quilt'
+            url = 'https://maven.quiltmc.org/repository/release'
         }
     }
 }

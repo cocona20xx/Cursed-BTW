@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "quilt_loader": {
+    "group": "btw.community",
+    "id": "cursed_btw",
+    "version": "${version}",
+    "metadata": {
+      "name": "Mod Name",
+      "description": "A short description of your mod.",
+      "contributors": {
+        "Me!": "Owner"
+      }
+    },
+    "intermediate_mappings": "net.fabricmc:intermediary",
+    "entrypoints": {
+      "init": "btw.community.fabric.BTWFabricMod",
+      "gfh:prePreLaunch": "btw.community.fabric.BTWFabricMod"
+    },
+    "plugins": [
+      "btw.community.quilt.CursedBTWLoaderPlugin"
+    ],
+    "depends": [
+      {
+        "id": "quilt_loader",
+        "versions": ">=0.20.0"
+      }
+    ]
+  }
+}
